@@ -38,12 +38,15 @@ Page({
    * 作用：接受页面传递的index参数，通过全局存取看地图页面的坐标点。设置界面初始值。
    */
   onLoad:function(options){
+    WxService.showLoading();
     let _this=this;
     _this.list = JSON.parse(options.list);
     _this.setData({
       index: options.index,
       list: JSON.parse(options.list),
       userId: app.globalData.userInfo.userId
+    },()=>{
+      WxService.hideLoading();
     });
     _this.markers(_this.list);
 
@@ -76,18 +79,6 @@ Page({
         list: mylist,
       });
     }    
-  },
-  onReady:function(){
-    // 使用 wx.createMapContext 获取 map 上下文
-    
-  },
-
-  
-  onHide:function(){
-    // 页面隐藏
-  },
-  onUnload:function(){
-    // 页面关闭
   },
   markers: function(list){
     let _this = this;
@@ -148,7 +139,6 @@ Page({
     let _this = this;
     let lat = (_this.list[_this.data.index].location.split(","))[1];
     let lon = (_this.list[_this.data.index].location.split(","))[0];
-    console.log(`建群传输数据`,this.data.userId,_this.list[_this.data.index].name,(_this.list[_this.data.index].location.split(","))[0],(_this.list[_this.data.index].location.split(","))[1],(_this.list[_this.data.index].name));
     AppService.createGroup(_this.data.userId,_this.list[_this.data.index].name,parseFloat((_this.list[_this.data.index].location.split(","))[0]),parseFloat((_this.list[_this.data.index].location.split(","))[1]),(_this.list[_this.data.index].name));
   },
   /**
@@ -156,7 +146,6 @@ Page({
    * markerTap是通过改变index的值从而触发了changeEvent，在changeEvent进行打点。
    */
   markertap:function(res){
-    console.log(res.markerId);
     var index = res.markerId;
     this.setData({
       index: index
@@ -164,14 +153,16 @@ Page({
   },
 
   changeEvent: function(e){
-
     let _this = this;
-    console.log(e.detail.current);
     let index = e.detail.current;
     _this.setData({
       index: index
     });
-
     _this.markers(_this.list);
   },
 })
+/**
+ * @watchMap界面梳理
+ * 1、options中传递了两个参数。index索引，list的poi点列表。
+ * 2、通过全局获取userid。
+ */

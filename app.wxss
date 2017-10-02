@@ -1,6 +1,4 @@
 /**app.wxss**/
-
-
 .container {
   width: 100%;
   display: flex;
@@ -11,13 +9,20 @@
   box-sizing: border-box;
 }
 
-.border-bottom{
-  border-bottom: 2rpx solid #cccccc;
-}
+/* flex布局相关 */
 .center{
   display: flex;
   justify-content: center;
   align-items: center;
+}
+.fx1{
+  flex: 1
+}
+.dsF{
+  display: flex;
+}
+.fxColumn{
+  flex-direction: column
 }
 .main-color{
   color: #3c78ff
@@ -25,7 +30,22 @@
 .red-color{
   color: red;
 }
-
+/* 边框样式 */
+.border{
+  border: 2rpx solid #cccccc;
+}
+.border-bottom{
+  border-bottom: 2rpx solid #cccccc;
+}
+.border-left{
+  border-left: 2rpx solid #cccccc;
+}
+.border-top{
+  border-top: 2rpx solid #cccccc;
+}
+.border-right{
+  border-right: 2rpx solid #cccccc;
+}
 /*底部说话按钮样式*/
 .speak{
     width: 100%;
@@ -40,7 +60,6 @@
 }
 .middle-btn{
     flex: 4;
-    
 }
 .speak-btn{
     width: 100%;
@@ -149,15 +168,7 @@
   text-overflow: ellipsis;
   overflow: hidden;
 }
-.fx1{
-  flex: 1
-}
-.dsF{
-  display: flex;
-}
-.fxColumn{
-  flex-direction: column
-}
+
 .overflowH{
   overflow: hidden;
   width: 170rpx;

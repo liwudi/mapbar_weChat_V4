@@ -6,7 +6,7 @@ let AppService = require('./service/AppService');
 
 App({
     onLaunch: function () {
-
+      WxService.onNetworkStatusChange();
     },
     onHide: function () {
         wx.getSavedFileList({

@@ -35,33 +35,25 @@ if(!!userInfo){
     userImg = userInfo.userImg;
 
 }
-
-
 function setUserInfo(userInfo){
     wx.setStorageSync('userInfo',userInfo)
-    
 }
-
-
-
 function getUserInfo(){
-    
     return WxService.wxCheckSession().then(() => {
+        //不调用code，进行登录
         if(userInfo&&userId&&userName&&userImg){
             console.log(`再次登陆`)
             return WxService.wxUserInfo().then(res => {
-              console.log('先获取用户头像等信息',res.userInfo);
               userInfo.userImg = res.userInfo.avatarUrl;
               setUserInfo(userInfo);
             }).then(()=>{
-              console.log(`then中获取群组列表`)
               return getGroupList()
             }).catch((err)=>{
-              console.log(`catch中获取群组列表`)
               return getGroupList()
             })
             
         }else{
+          //调用code的情况进行登录
             return WxService.wxLogin().then((res) => {
                 console.log(`首次登陆${res.code}`)
                 return WxService.wxUserInfo().then((data) => {
@@ -76,7 +68,7 @@ function getUserInfo(){
             })
         }
     }).catch(() => {
-        
+        //session验证过期，重新code进行登录
         return WxService.wxLogin().then((res) => {
             
             return WxService.wxUserInfo().then((data) => {
@@ -89,7 +81,9 @@ function getUserInfo(){
         })
     });
 }
-
+/**
+ * 登录接口，通过code进行获取用户信息
+ */
 function getUserId(code, avatarUrl, nickName){
     console.log('code',code);
     return BaseService.get(
@@ -99,15 +93,15 @@ function getUserId(code, avatarUrl, nickName){
             userimg:avatarUrl,
             username:nickName,
         }
-    ).then(res => {
-        console.log(`获得结果res`,res);  
+    ).then(res => {  
         setUserInfo(res.data.user);
         return res;
     })
 }
-
+/**
+ * 登录接口，通过缓存，调用登录接口获取用户信息里面。
+ */
 function getGroupList(){
-
     return BaseService.get(
         `${Config.main_url}/wxGroup/login.json`,
         {
@@ -115,13 +109,12 @@ function getGroupList(){
             username: userInfo.userName,
             userimg: userInfo.userImg,
         }
-    ).then(res => {
-        
+    ).then(res => {    
         setUserInfo(res.data.user);
         return res;
     })
 }
-
+//获取用户列表，通过groupId和isOver
 function getUsersList(groupId,pram){
     return BaseService.get(
         `${Config.main_url}/wxGroup/searchTrip.json?groupid=${groupId}&isOver=${pram}`,
@@ -197,24 +190,25 @@ let cityCode = {
 
 function getCityCode(){
     let now = new Date().getTime();
-    if(cityCode.time &&  (now - cityCode.time < 600*1000)){
+    //接口调用优化。1分钟之内，默认调用上次获取的cityCode
+    if(cityCode.time &&  (now - cityCode.time < 60*1000)){
         return new Promise((resolve,reject) => {
             resolve(cityCode);
         })
     }else{
-        return WxService.getLocation().then(res => {
-            console.log('图吧地址',res);
-            return BaseService.get(
-                `https://wedrive.mapbar.com/opentsp/gis/api/inverse?resType=json&lat=${res.latitude}&lon=${res.longitude}&inGb=02&outGb=g02&ak=69453725f7e942bb84eac04189fd20ab`,
-                {}
-            )
-        }).then(res => {
-            console.log(`cityCode接口返回`,res);
-            cityCode.time = now;
-            cityCode.code = res.data.province.code;
-            cityCode.currentCity = res.data.city.value;
-            return cityCode;
-        })
+      return WxService.getLocation().then(res => {
+          return BaseService.get(
+            `${Config.cityCode_url}/opentsp/gis/api/inverse?resType=json&lat=${res.latitude}&lon=${res.longitude}&inGb=02&outGb=g02&ak=69453725f7e942bb84eac04189fd20ab`,
+              {}
+          )
+      }).then(res => {
+        cityCode = {
+          time: now,
+          code: res.data.province.code,
+          currentCity: res.data.city.value,
+        }
+        return cityCode;
+      })
     }
     
 }
@@ -224,7 +218,7 @@ function getCityCode(){
 
 function commonSearch(keywords,location,city,page_num){
     return BaseService.get(
-        `https://w.mapbar.com/search2015/search`,
+      `${Config.search_url}`,
         {
             keywords,
             location,
@@ -236,7 +230,7 @@ function commonSearch(keywords,location,city,page_num){
 
 function keywordsSearch(keywords,location,city,page_num) {
     return BaseService.get(
-        `https://w.mapbar.com/search2015/search/keywords`,
+      `${Config.search_url}/keywords`,
         {
             keywords,
             location,
@@ -248,7 +242,7 @@ function keywordsSearch(keywords,location,city,page_num) {
 
 function suggestSearch(keywords,cityCode){
     return BaseService.get(
-        `https://w.mapbar.com/search2015/search/suggest`,
+      `${Config.search_url}/suggest`,
         {
             'keywords': keywords,
             'city':cityCode
@@ -258,7 +252,7 @@ function suggestSearch(keywords,cityCode){
 
 function aroundSearch(keywords,location,city,page_num){
     return BaseService.get(
-        `https://w.mapbar.com/search2015/search/around`,
+      `${Config.search_url}/around`,
         {
             keywords,
             location,
@@ -282,7 +276,6 @@ function createGroup(userid,groupname,lon,lat,destname){
             destname
         }
     ).then(res => {
-        
         wx.hideToast();
         WxService.redirectTo(`../destination/destination?groupId=${res.data.groupid}&isGroupHost=true&lat=${lat}&lon=${lon}`);
     })
@@ -297,7 +290,6 @@ function exitTheGroup(userId,groupId){
         status:1
     }
     ).then(res => {
-        console.log(res);
         wx.navigateBack({delta: 5});
         if(res.status == 200){
             
@@ -316,7 +308,6 @@ function changeGroupName(userId,groupId,groupname){
         groupname:groupname
     }
     ).then(res => {
-    console.log(res);
         wx.navigateBack({delta: 1});
         if(res.status == 200){
             

@@ -7,8 +7,10 @@ const app = getApp();
 
 Page({
   data:{
+    //本页面未设置分享，直接在全局获取userid和userinfo
     userId: ``,
     userInfo: {},
+    //通过页面传递参数，得到destination
     destination: ``,
     longitude: ``,
     latitude: ``,
@@ -21,9 +23,6 @@ Page({
 
 
     destinationList:[],//关键字搜索列表
-    deslon:"",
-    deslat:"",
-    isLastPage:false,//最后一页
     page_num:1,//当前显示页数
     target_num:0, //数据总数
     hasOther: false,
@@ -42,21 +41,23 @@ Page({
    * 作用：获取自己当前位置坐标，接收上个页面传递过来的位置关键字，获取城市code
    */
   onLoad:function(options){
-    console.log("options",options);
-
-    let _this=this;
+    WxService.showLoading();
     wx.setNavigationBarTitle({title: options.data})
-    
+    this.initData(options)
+  },
+  onUnload: function () {
+    WxService.hideLoading();
+  },
+  initData: function (options){
+    let _this = this;
     WxService.getLocation().then(res => {
       _this.setData({
         latitude: res.latitude,
         longitude: res.longitude,
-      })
- 
-      return AppService.getCityCode();
+      });
 
+      return AppService.getCityCode();
     }).then((data) => {
-      console.log(`data`,data);
       _this.setData({
         destination: options.data,
         userInfo: app.globalData.userInfo,
@@ -65,14 +66,11 @@ Page({
         cityCode: data.code,
       });
     }).then(() => {
-
-      let str = ""+_this.data.longitude+","+_this.data.latitude;
+      let str = "" + _this.data.longitude + "," + _this.data.latitude;
       let page_num = _this.data.page_num;
-      
-      _this.commonSearch(_this.data.cityCode,str,page_num);
+      _this.commonSearch(_this.data.cityCode, str, page_num);
     }); 
   },
-
   /**
    * @function commonSearch 一般搜索
    */
@@ -85,8 +83,7 @@ Page({
       });
       return AppService.commonSearch(_this.data.destination,str,cityCode,page_num)
     }).then(res => {
-      console.log("sucess返回数据",res);
-
+      WxService.hideLoading();
       _this.dealSearchData(res.data);
 
     })
@@ -101,17 +98,13 @@ Page({
         longitude:res.longitude,
         latitude:res.latitude
       });
-      console.log('keyworld',str);
       if(value){
-        return AppService.keywordsSearch(value, str, cityCode, page_num);
-        
+        return AppService.keywordsSearch(value, str, cityCode, page_num);  
       }
       return AppService.keywordsSearch(_this.data.destination,str,cityCode,page_num);
 
       
-    }).then(res => {
-      console.log("sucess返回数据",res);
-      
+    }).then(res => {  
       _this.dealSearchData(res.data);
     })
   },
@@ -140,18 +133,14 @@ Page({
       //创建list来处理res.data.pois
       let list=res.pois;
       for(let i=0;i<list.length;i++){
-        console.log(list[i].distance/1000);
         list[i].distance = list[i].distance / 1000 >= 1 ? parseInt(list[i].distance / 1000) + "km" : (parseInt(list[i].distance) < 10 ? "附近" : parseInt(list[i].distance)+"m");
       }
-      console.log("处理后list",list);
-      console.log('数据总数',num)
       _this.setData({
         destinationList:list,
         target_num:num
       });
     }
     if(res.districtSwap){
-
       _this.setData({
         hasOther: true,
         other_cityName:`${res.districtSwap.name}`,
@@ -159,10 +148,9 @@ Page({
         other_cityCode:`${res.districtSwap.adcode}`,
         other_cityPoints:`${res.districtSwap.centerPoint}`
       });
-      _this.suggestCityEvet();
+      _this.suggestCityEvet();//这个调用keywordsSearch查询
     }
     if (res.cities){
-    
       _this.setData({
         cities: res.cities
       })
@@ -172,20 +160,6 @@ Page({
         otherDataList: res.corrections
       })
     }
-    
-  },
-  onReady:function(){
-    // 页面渲染完成
-    
-  },
-  onShow:function(){
-    // 页面显示
-  },
-  onHide:function(){
-    // 页面隐藏
-  },
-  onUnload:function(){
-    // 页面关闭
   },
   /**
    * prePageEvent
@@ -197,12 +171,10 @@ Page({
     //_this.keywordsSearch(cityCode, str, _this.data.page_num-1);
     
     WxService.getLocation().then(res => {
-      console.log('getLocation',res);
       _this.setData({
         longitude: res.longitude,
         latitude: res.latitude
       });
-      console.log(this.data.longitude, this.data.latitude)
       let x = this.data.longitude;
       let y = this.data.latitude;
       let str = "" + x + "," + y;
@@ -211,9 +183,6 @@ Page({
         cityCode = _this.data.other_cityCode;
         //str = _this.data.other_cityPoints;
       }
-      console.log(`这个cityCode是`, cityCode);
-      console.log('坐标点', str);
-      console.log('页数', _this.data.page_num);
       wx.showToast({
         title: '加载中',
         icon: 'loading',
@@ -221,19 +190,15 @@ Page({
       })
       return AppService.keywordsSearch(_this.data.destination, str, cityCode, this.data.page_num - 1);
     }).then(res => {
-      console.log("sucess返回数据", res);
       let list = res.data.pois;
       for (let i = 0; i < list.length; i++) {
-        console.log(list[i].distance / 1000);
         list[i].distance = list[i].distance / 1000 >= 1 ? parseInt(list[i].distance / 1000) + "km" : (parseInt(list[i].distance) < 10 ? "附近" : parseInt(list[i].distance) + "m");
       }
       _this.setData({
         destinationList: list,
         page_num: _this.data.page_num - 1
       });
-
       wx.hideToast();
-      
     })
   },
   /**
@@ -256,26 +221,19 @@ Page({
         //str = _this.data.other_cityPoints;
       }
 
-      wx.showToast({
-        title: '加载中',
-        icon: 'loading',
-        duration: 10000
-      })
+      WxService.showLoading();
       return AppService.keywordsSearch(_this.data.destination, str, cityCode, this.data.page_num + 1);
     }).then(res => {
-      console.log("sucess返回数据", res);
+      
       let list = res.data.pois;
       for (let i = 0; i < list.length; i++) {
-        console.log(list[i].distance / 1000);
         list[i].distance = list[i].distance / 1000 >= 1 ? parseInt(list[i].distance / 1000) + "km" : (parseInt(list[i].distance) < 10 ? "附近" : parseInt(list[i].distance) + "m");
       }
       _this.setData({
         destinationList: list,
         page_num: _this.data.page_num + 1
       });
-
-      wx.hideToast();
-
+      WxService.hideLoading();
     })
   },
   /**
@@ -284,8 +242,6 @@ Page({
    */
   selectedMapEvent:function(res){
     let _this = this;
-    
-    console.log(res);
     _this.index = res.currentTarget.dataset.target;
     
     WxService.navigateTo(`../watchMap/watchMap?index=${res.currentTarget.dataset.target}&list=${JSON.stringify(_this.data.destinationList)}`);
@@ -344,7 +300,9 @@ Page({
     let y = this.data.latitude;
     let str = ""+x+","+y;
     this.setData({
-      hasOther: false
+      hasOther: false,
+      other_cityCode: null,
+      page_num: 1
     });
     let cityCode = _this.data.cityCode;
     _this.keywordsSearch(cityCode,str,_this.data.page_num);
@@ -373,10 +331,14 @@ Page({
     //   destination: _this.data.other_detailCityName,
     // });
     let cityCode = _this.data.other_cityCode;
-    console.log(`这个cityCode是`,cityCode);
-    console.log('坐标点',str);
-    console.log('页数', _this.data.page_num)
-    console.log('查询的关键字',this.data.destination);
     _this.keywordsSearch(cityCode,str,_this.data.page_num);
   }
 })
+
+/**
+ * @存在的问题，返回北京市查看结果，然后点击下一页的问题。
+ * @逻辑梳理（关于查询）：
+ * 首先，根据关键字进行一般查询commonSearch，如果有城市区域切换，那就keywordsSearch。
+ * 其次，上一页和下一页功能，都是使用keywordsSearch查询。
+ * 再次，如果再次返回本地城市查询，还是keywordsSearch查询
+ */

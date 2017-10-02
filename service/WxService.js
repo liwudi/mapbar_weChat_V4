@@ -1,10 +1,18 @@
 //wx service
+/**
+ * @ 1、微信服务
+ * @ 2、loading
+ * @ 3、Modal相关
+ * @ 4、exception相关
+ */
+
+//exception可能出现的情况。1、网络异常。2、wx接口异常。3、服务器异常。4、自身代码异常
 const Promise = require(`../vendor/bluebird/bluebird`);
 
 const Config = require(`../config`);
 
 const BaseService = require(`./BaseService`);
-
+//@ 1、微信服务
 let wxLogin = () => {
     return new Promise((resolve, reject) => {
         wx.login({
@@ -19,8 +27,6 @@ let wxLogin = () => {
         })
     })
 }
-
-
 
 let _currentLatLon = {}
 
@@ -44,7 +50,6 @@ let wxUserInfo = () =>{
 let wxCheckSession = () => {
     console.log(`wxCheckSession`)
     return new Promise((resolve,reject) => {
-        console.log(`resolve`);
         wx.checkSession({
             success: function(e){
                 console.log(e);
@@ -71,20 +76,7 @@ let getLocation = () => {
                 },
                 fail: (err) => {
                   reject(err);
-                  getNetworkType().then(res => {
-                    if (res !== 'none') {
-                      showSetModal('地理位置')
-                    } else {
-                      /**
-                       * @info: 如果网络有问题，就给出提示信息
-                       */
-                      wx.showToast({
-                        title: '请检查您的网络问题',
-                        icon: 'loading',
-                        duration: 2000
-                      })
-                    }
-                  })
+                  showSetModal('地理位置');
                 }
             })
         }
@@ -237,6 +229,18 @@ let getNetworkType = () => {
     })
   })
 }
+//判断当前网络连接问题
+//在网络不通的情况下，会间断性的提示网络异常。
+//在网络切换的情况下，会告知网络切换情况。但不再切换网络，就不提示切换
+let onNetworkStatusChange = () => {
+  wx.onNetworkStatusChange(function (res) {
+    let isConnected = res.isConnected;
+    let networkType = res.networkType;
+    !isConnected && showModal('网络异常','您当前的网络未连接',false);
+    isConnected && showToast('网络切换成'+networkType,"success");
+  })
+}
+
 /**
  * @introduction:界面交互相关
  */
@@ -263,7 +267,7 @@ let showModal = (title, content, isShowCancel, next) => {
   !isShowModal && (isShowModal = true) && wx.showModal({
     title: title,
     content: content,
-    showCancel: isShowCancel || true,
+    showCancel: isShowCancel,
     success: function (res) {
       if (res.confirm) {
         next && next();
@@ -283,6 +287,14 @@ let showLoading = (title,isMask) => {
 
 let hideLoading = () => {
   wx.hideLoading();
+}
+
+let showToast = (title,icon,duration) => {
+  wx.showToast({
+    title: title || '',
+    icon: icon || 'loading',
+    duration: duration || 2000
+  })
 }
 
 module.exports = {
@@ -306,6 +318,9 @@ module.exports = {
 
     getNetworkType,
 
+    showToast,
     showLoading,
-    hideLoading
+    hideLoading,
+    //网络监控
+    onNetworkStatusChange,
 }

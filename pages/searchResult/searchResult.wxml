@@ -50,7 +50,7 @@
       <view class="next-page center" wx:if="{{page_num>1}}" bindtap="prePageEvent">
           <text class="text-color" >上一页</text>
       </view>
-      <view class="searchresult" wx:for="{{destinationList}}">
+      <view class="searchresult" wx:for="{{destinationList}}" wx:key="{{nid}}">
           <view class="item my-item" bindtap="tapEvent" id="{{index}}">
               <view class="left-number">
                   <view class="left-cicle center">

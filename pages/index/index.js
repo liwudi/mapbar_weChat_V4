@@ -33,16 +33,6 @@ Page({
     userInfo: {},//初始化的用户昵称、头像信息
     groupList: [],//用于展示群的列表
     groupNumber: null,
-    isbind: false,//标识是否绑定了电话
-
-    isClickCode: false,//是否在验证码时间内
-    isWrong: false,//验证码是否填写错误
-    number_value: "",//电话号输入框的值
-    code_value: "",//验证码输入框的值
-    rest_time: 60,//再次发送验证码剩余时间
-    isNumberShow: false,//确认电话号码是否有输入
-    isCodeShow: false,//确认验证码是否有输入
-    isNumberWrong:false,
 
     ismaxDistance: false,
     istotalDistance: false,
@@ -55,42 +45,34 @@ Page({
     modalHidden:true,
     confirmData:null,
     inputValue:"",
-
-
-    //test
-    iosAndandroid:null
-  },
-  touchStartEvent:function() {
-    console.log('start');
-
-    this.setData({
-      color:"#aaaaaa",
-      modalHidden: false
-    })
-  },
-  touchEndEvent: function() {
-    console.log('end');
-    this.setData({
-      color: "#f8f8f8"
-    })
   },
   onLoad: function (options) {
-    console.log('友盟传递参数',options);
-    if (options.groupId) {
-      this.getDataAndGotoDestination(options.groupId)
+    WxService.showLoading();
+    //ios || android 应用调起小程序，跳转群组页面
+    options.groupId && this.gotoDestinationByGroupId(options.groupId);
+  },
+  onShow: function (options) {
+    wx.setNavigationBarTitle({ title: '图吧同行' });
+    this.initData();
+  },
+  onUnload: function(){
+    WxService.hideLoading();
+  },
+  onShareAppMessage: function () {
+    return {
+      title: '图吧同行',
+      path: '/pages/index/index'
     }
   },
-  onShow: function(options){
-    
-    wx.setNavigationBarTitle({ title: '图吧同行' });
-    var _this = this;
+  initData: function(){
+    let _this = this;
     AppService.getUserInfo().then(res => {
-      console.log('用户信息',res);
-      if(res.statusCode == 200){
-        res.data.user.maxDistance = (res.data.user.maxDistance == null)? 0 : (res.data.user.maxDistance*1000).toFixed(0);
-        res.data.user.totalDistance = (res.data.user.totalDistance == null) ? 0 : (res.data.user.totalDistance*1000).toFixed(0);
-        if (res.data.user.maxDistance > 1000){
-          res.data.user.maxDistance = (res.data.user.maxDistance/1000).toFixed(1);
+      WxService.hideLoading();
+      if (res.statusCode == 200) {
+        res.data.user.maxDistance = (res.data.user.maxDistance == null) ? 0 : (res.data.user.maxDistance * 1000).toFixed(0);
+        res.data.user.totalDistance = (res.data.user.totalDistance == null) ? 0 : (res.data.user.totalDistance * 1000).toFixed(0);
+        if (res.data.user.maxDistance > 1000) {
+          res.data.user.maxDistance = (res.data.user.maxDistance / 1000).toFixed(1);
           _this.setData({
             ismaxDistance: true
           })
@@ -104,191 +86,53 @@ Page({
         //缓存全局userid，在适当的时候使用，可减少http请求。
         app.globalData.userInfo = res.data.user;
         _this.setData({
-            userInfo: res.data.user,
-            isbind: res.data.user.userPhone,
-            groupList: res.data.groupList,
-            groupNumber: res.data.groupList.length
+          userInfo: res.data.user,
+          groupList: res.data.groupList,
+          groupNumber: res.data.groupList.length
         })
       }
-    }).catch(err =>{
-      
-      /**
-       * @service 获取网络状态，如果网络没问题，就是用户授权未开启
-       */
-      WxService.getNetworkType().then(res => {
-        
-        if(res !== 'none'){
-          WxService.showSetModal('用户信息');
-        }else{
-          /**
-           * @info: 如果网络有问题，就给出提示信息
-           */
-          wx.showToast({
-            title: '请检查您的网络问题',
-            icon: 'loading',
-            duration: 2000
-          })
-        }
-      })
+    }).catch(err => {
+      console.log(err);
+      WxService.hideLoading();
+      WxService.showToast('信息获取异常');
     })
   },
- 
-  //验证码相关函数
-  clearNumberEvent:function(){
-    this.setData({
-      number_value:"",
-      isNumberShow:false
-    });
-  },
- 
-  clearCodeEvent:function(){
-    this.setData({
-      code_value:"",
-      isCodeShow:false
-    });
-  },
- 
-  inputNumberEvent:function (event) {
-    let data=event.detail.value;
-    if(data){
-      this.setData({
-        isNumberShow:true,
-        isNumberWrong:false,
-        isWrong:false
-      });
-    }
-    this.setData({
-      number_value:data
-    });
-  },
- 
-  inputCodeEvent:function (event) {
-    let data=event.detail.value;
-    if(data){
-      this.setData({
-        isCodeShow:true,
-        isNumberWrong:false,
-        isWrong:false
-      });
-    }
-    this.setData({
-      code_value:data
-    });
-  },
   
-  modalCancelEvent:function(){
-    this.setData({
-      isbind:!this.data.isbind
-    });
-  },
-  
-  modalConfirmEvent:function(){
-    let _this=this;
-    let number_data=this.data.number_value;
-    if(number_data.length!==11||number_data.charAt(0)!=="1"){
-      _this.setData({
-        isNumberWrong:true
-      })
-      return
-    }
-    AppService.upLoadPin(_this.data.userInfo.userId,_this.data.code_value).then(res => {
-      
-      if(res.status==6001){
-        _this.setData({
-          isWrong:true
-        }); 
-      }else{
-        _this.setData({
-          isbind:!_this.data.isbind
-        });
-        wx.showToast({
-          title: '绑定成功',
-          icon: 'success',
-          duration: 1000
-        });
-      }
-    })
-  },
 
-  getCodeEvent:function(){
-    let _this=this;
-
-    this.setData({
-      rest_time:60
-    });
-    let number_data=this.data.number_value;
-    if(number_data.length!==11||number_data.charAt(0)!=="1"){
-      wx.showModal({
-        title: '提示',
-        content: '请输入正确的电话号码！',
-        showCancel:false,
-      });
-    }else{
-      AppService.pushSms(this.data.userInfo.userId,this.data.number_value).then(res => {
-        
-        _this.setData({
-          isClickCode:!_this.data.isClickCode
-        });
-        _this.timer=setInterval(function(){
-          _this.setData({
-            rest_time:_this.data.rest_time-1
-          })
-          if(_this.data.rest_time==0){
-              _this.setData({
-              isClickCode:!_this.data.isClickCode
-            });
-            clearInterval(_this.timer);
-          }
-        },1000);
-      })
-    }
-  },
   
   //页面跳转相关的函数!!!!
-  
   tapEvent: function() {
     WxService.navigateTo(`../search/search`);
   },
-
-
   helpEvent:function(){
     WxService.navigateTo(`../help/help`);
   },
-
-
   enterGroupEvent:function(res){
-
     let _this = this;
-
-    let groupIndex = res.currentTarget.dataset.id;
-    
+    let groupIndex = res.currentTarget.dataset.id;  
     let groupId = this.data.groupList[groupIndex].groupId;
-   
     let isGroupHost = (String(_this.data.groupList[groupIndex].userId)==String(_this.data.userInfo.userId))?true:false;
     let lat = this.data.groupList[groupIndex].lat;
     let lon = this.data.groupList[groupIndex].lon;
 
     if(groupId){
-      
       WxService.navigateTo(`../destination/destination?groupId=${groupId}&isGroupHost=${isGroupHost}&lat=${lat}&lon=${lon}`);
     }
   },
-  onShareAppMessage: function () {
-    return {
-      title: '图吧同行',
-      path: '/pages/index/index'
-    }
+  modalChange:function() {
+    let groupId = Number(this.data.confirmData);
+    this.gotoDestinationByGroupId(groupId,()=>{
+      wx.showToast({
+        title: '请检查您的输入是否是数字',
+        icon: 'loading',
+        duration: 2000
+      })
+    });
   },
-  //用于处理ios和android分享的处理函数。
-  getDataAndGotoDestination(groupid){
+  // 用于处理ios和android分享的处理函数。
+  gotoDestinationByGroupId: function (groupid,next){
     let _this = this;
-    let isGroupHost = false;
-    for (let i = 0; i < _this.data.groupList.length; i++) {
-      if (String(_this.data.groupList[i].userId) == String(_this.data.userInfo.userId)) {
-        isGroupHost = true;
-        break;
-      }
-    }
+    let isGroupHost = this.isGroupHost(groupid);
     let groupId = groupid;
     if (groupId) {
       WxService.navigateTo(`../destination/destination?groupId=${groupId}&isGroupHost=${isGroupHost}`);
@@ -296,53 +140,47 @@ Page({
         modalHidden: true
       })
     } else {
-      wx.showToast({
-        title: '请检查您的输入是否是数字',
-        icon: 'loading',
-        duration: 2000
-      })
+      next && next();
     }
   },
-  modalChange:function() {
-    let _this = this;
-    let isGroupHost = false;
-    for(let i = 0;i < _this.data.groupList.length; i++){
-      if (String(_this.data.groupList[i].userId) == String(_this.data.userInfo.userId)){
-        isGroupHost = true;
-        break;
-      }
-    }
-    let groupId = Number(this.data.confirmData);
-    if (groupId){
-      WxService.navigateTo(`../destination/destination?groupId=${groupId}&isGroupHost=${isGroupHost}`);
-      this.setData({
-        modalHidden: true
-      })
+  // 功能函数
+  isGroupHost: function(groupId){
+    let thisGroup = this.data.groupList.find((item,index)=>{
+      return item.groupId == groupId
+    });
+    if (thisGroup && thisGroup.userId == this.data.userInfo.userId){
+      return true;
     }else{
-      wx.showToast({
-        title: '请检查您的输入是否是数字',
-        icon: 'loading',
-        duration: 2000
-      })
+      return false;
     }
-    
   },
+  // 底部输入框相关
+  touchStartEvent: function () {
+    console.log('start');
+
+    this.setData({
+      color: "#aaaaaa",
+      modalHidden: false
+    })
+  },
+  touchEndEvent: function () {
+    console.log('end');
+    this.setData({
+      color: "#f8f8f8"
+    })
+  },
+  // modal框相关
   modalCancel: function () {
     this.setData({
       modalHidden: true
     });
   },
-  /**
-   * 函数名：inputEvent
-   * 作用：输入框的input事件，用于记录输入的字符串
-   */
   inputEvent: function (event) {
     this.setData({
       confirmData: event.detail.value,
       isShowName: event.detail.value ? true:false
     });
   },
-  
   clearContentEvent: function () {
     this.setData({
       inputValue: ``,
@@ -350,4 +188,23 @@ Page({
     })
   }
 })
+
+
+/**
+ * @index界面梳理
+ * 1、功能梳理
+ *  a、有群组的时候展示的群组界面，没有群组的时候展示引导页
+ *  b、顶部点击跳转搜索功能
+ *  c、帮助页面跳转功能
+ *  d、接收ios和android分享的功能
+ *  e、群号码搜索的功能
+ *  f、群组列表有跳转群组的的功能
+ * 2、接口梳理
+ *  a、getUserInfo获取用户信息的接口
+ * 3、逻辑梳理
+ *  a、在onload中，直接判断是否有传递信息。进行相关跳转处理。（这个主要针对群组导航调起小程序，是一个单独功能，与其他逻辑完全隔离。）
+ * 4、事件梳理
+ * 4、catch处理：网络状态处理，数据请求处理
+ * 5、可能存在的bug：已经解决
+ */
 

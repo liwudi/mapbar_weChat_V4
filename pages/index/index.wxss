@@ -3,10 +3,6 @@ page{
   width: 100%;
   height: 100%;
 }
-.container{
-  display: flex;
-  flex-direction: column;
-}
 /*首页搜索区域样式*/
 .home-top{
   width: 100%;
@@ -253,16 +249,6 @@ item-image{
   display: flex;
   align-items: center;
 }
-.modal{
-  display: flex;
-  flex-direction: column;
-}
-.bind-phone{
-  flex: 1;
-}
-.number-box{
-  position: relative;
-}
 .content-cancel{
   position: absolute;
   left: 85%;
@@ -306,32 +292,9 @@ item-image{
 .input-number{
   flex: 1;
 }
-.your-code-box{
-  flex: 1;
-  display: flex;
-  flex-direction: row;
-  margin-top: 12rpx;
-  border: 1px solid #cccccc;
-  padding: 13rpx 0rpx 13rpx 10rpx;
-}
-.get-code{
-  border-left: 2rpx solid #cccccc;
-  color: #3c78ff;
-  width: 35%;
-}
 .input-number{
   width: 40%;
 }
-.input-code{
-  width: 65%;
-}
-.code-color{
-  color: #aaaaaa;
-}
-
-
-
-
 .search-group{
   width: 100%;
   height: 100rpx;

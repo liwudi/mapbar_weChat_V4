@@ -104,7 +104,6 @@ Page({
    
     options.isShare && AppService.getUserInfo().then((res) => {
       
-      
       if(res.statusCode == 200){
         isShare = true;
         _this.setData({
@@ -214,7 +213,7 @@ Page({
     theGroup && _this.setData({
         destination: theGroup.destName
     });
-    console.log('theGroup',theGroup);
+    
     theGroup && wx.setNavigationBarTitle({
       title: theGroup.destName
     });
@@ -255,8 +254,6 @@ Page({
       }).catch(err => {
         console.log('未获取路况信息')
       })
-     
-      
     }).catch(error => {
       console.log(error);
       wx.showToast({
@@ -272,9 +269,7 @@ Page({
    */
   reGetRoute: function(){
     let _this = this;
-    
     WxService.getLocation().then(res => {
-      
       let [lat,lon,destlon,destlat,groupid] = [res.latitude,res.longitude,_this.data.destlon,_this.data.destlat,_this.data.groupId];
       
       
@@ -285,7 +280,6 @@ Page({
         destlat: destlat,
         groupid: groupid
       }).then(res => {
-       
         let data = res.data.data.routelatlon;
         _this.dealRouteData(data);
       }).catch(err => {
@@ -762,9 +756,7 @@ Page({
     });
   },
   usersItemEvent: function(e){
-   
     let index = e.target.dataset.target;
-    
     this.setData({
       myborderColor: '#cccccc',
       checkIndex: index,
@@ -776,7 +768,6 @@ Page({
       info_isOver: this.data.usersList[index].isOver,
       info_username: this.data.usersList[index].userName
     });
-    
   },
   //上传语音相关
   touchStartEvent: function() {
@@ -786,9 +777,7 @@ Page({
     })
     _this.startTime = new Date().getSeconds();
     WxService.startRecord().then(res => {
-      
       let tempFilePath = res.tempFilePath;
-
       return WxService.saveFile(tempFilePath);
     }).then(res => {
       
@@ -796,11 +785,8 @@ Page({
       let userid =  _this.data.userInfo.userId;
       let groupid = _this.data.groupId;
       let timelong = ((_this.endTime-_this.startTime)>=0)?(_this.endTime-_this.startTime):(60-_this.startTime+_this.endTime);
-
-      
       WxService.upLoadFile(savedFilePath,userid,groupid,timelong);
     })
-
   },
   touchEndEvent: function() {
     let _this=this;
@@ -825,3 +811,7 @@ Page({
     }
   },
 })
+
+/**
+ * @这个界面的问题：判断此群已解散的标志有问题。
+ */

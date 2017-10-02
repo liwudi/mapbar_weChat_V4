@@ -19,15 +19,11 @@ wx.getSystemInfo({
 function getNowDate(s = new Date().getTime()) {
     let day = new Date(s);
     let [Year,Month,Day,Hour,Minute,CurrentDate] = [0,0,0,0,0,``]
-    //初始化时间
-    //Year= day.getYear();//有火狐下2008年显示108的bug
-    Year = day.getFullYear();//ie火狐下都可以
+    Year = day.getFullYear();
     Month = day.getMonth() + 1;
     Day = day.getDate();
     Hour = day.getHours();
     Minute = day.getMinutes();
-    // Second = day.getSeconds();
-    // CurrentDate += Year + "-";
     if (Month >= 10) {
         CurrentDate += `${Month}-`;
     } else {
@@ -57,9 +53,6 @@ function dealCatch(callback,next){
     if (res !== 'none') {
       callback();
     } else {
-      /**
-       * @info: 如果网络有问题，就给出提示信息
-       */
       next && next();
       !next && wx.showToast({
         title: '请检查您的网络问题',

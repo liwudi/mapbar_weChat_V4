@@ -3,7 +3,7 @@
 <map id="map" longitude="{{longitude}}" latitude="{{latitude}}" markers="{{markers}}" include-points="{{include_markers}}" controls="{{controls}}" bindcontroltap="controlsEvent"  bindmarkertap="markertap" show-location></map>
 
 <swiper circular="{{true}}" class="place-info" bindchange="changeEvent" current="{{index}}" autoplay="{{false}}" wx:if="{{true}}">
-    <block wx:for="{{list}}">
+    <block wx:for="{{list}}" wx:key="{{nid}}">
         <swiper-item>
             <view class="">
                 <view class="point-info">
