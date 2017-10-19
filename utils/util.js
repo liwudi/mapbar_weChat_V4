@@ -68,7 +68,6 @@ function dealTime(time) {
   let item = '';
   for (let i = 0; i < time.length; i++) {
     let index = time.charCodeAt(i);
-    console.log(index);
     if (47 < index && index < 58) {
       if (isNumber == true) {
         item += time[i]

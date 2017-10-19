@@ -141,9 +141,6 @@ Page({
     }).catch(error => {
       console.log(error);
     });
-
-    
-
     //语音通道的建立
     AppService.connectVoice();
   },
@@ -151,20 +148,22 @@ Page({
     
   },
   onShow:function(){
-    let _this = this;
-    
     //缓存读取是否第一次使用
-    let isFirst = wx.getStorageSync('isFirst');
+    this.isFirst();
     
-    if(isFirst !== false){
-      WxService.showModal(`温馨提示`,`点击右上角的分享图标可以分享您的目的地给好友哦！`,false,() => {
+    //onmessage()监听数据。
+    this.onmessage();
+
+    this.socketCatch();
+  },
+
+  isFirst: function(){
+    let isFirst = wx.getStorageSync('isFirst');
+    if (isFirst !== false) {
+      WxService.showModal(`温馨提示`, `点击右上角的分享图标可以分享您的目的地给好友哦！`, false, () => {
         wx.setStorageSync('isFirst', false);
       })
     }
-    //onmessage()监听数据。
-    _this.onmessage();
-
-    _this.socketCatch();
   },
   /**
    * @function socketCatch
@@ -252,7 +251,7 @@ Page({
         //上传坐标点
         _this.getLocation();
       }).catch(err => {
-        console.log('未获取路况信息')
+        console.log('未获取路况信息');
       })
     }).catch(error => {
       console.log(error);
@@ -364,6 +363,149 @@ Page({
    * updateLocation()上传坐标点
    * @param （longitude，latitude，speed）经纬度和速度
    */
+  getDestination: function(){
+    //如果没有destination，则通过获取UserInfo得到（groupId）
+    let _this = this;
+    !this.data.destination && AppService.getUserInfo().then(res => {
+      if (res.statusCode == 200) {
+        let theGroup = _this.data.groupList.find(item => item.groupId == _this.data.groupId);
+        theGroup && _this.setData({
+          userInfo: res.data.user,
+          groupList: res.data.groupList,
+          destination: theGroup.destName
+        });
+        !theGroup && _this.setData({
+          userInfo: res.data.user,
+          groupList: res.data.groupList,
+        })
+      }
+    })
+  },
+  downLoadImg: function(url, next){
+    wx.downloadFile({
+      url: url,
+      success: function (res) {
+
+        let path = res.tempFilePath;
+        next && next(path)
+      }
+    })
+  },
+  dealMySelf: function (mySelf, userMarkers){
+    let _this = this;
+    !_this.arrayImage && (_this.arrayImage = []);
+    _this.arrayImage && dealArrayImage(_this.arrayImage);
+    function dealArrayImage(arrayImage) {
+      let current = arrayImage.find(every => {
+        return every.userId == mySelf.userId
+      });
+      if (!current) {
+        _this.downLoadImg(mySelf.userImg, (path) => {
+          _this.arrayImage.push({
+            userId: mySelf.userId,
+            userTempFilePath: path
+          });
+        })
+      }
+    }
+
+    _this.setData({
+      mydistance: mySelf.distanceSurplus.toFixed(1),
+      mytime: (parseInt(mySelf.surplusTime / 60 / 60) < 1) ? parseInt(mySelf.surplusTime / 60) + "分钟" : parseInt(mySelf.surplusTime / 60 / 60) + "小时" + parseInt(mySelf.surplusTime / 60 % 60) + "分钟",
+      myspeed: parseInt(mySelf.speed),
+      myupdate: common.getNowDate(mySelf.updateTime),
+      my_tag_url: `../resouces/voice/avatar_tag${mySelf.index + 1}.png`,
+      my_isOver: mySelf.isOver
+    }, () => {
+      _this.setData({
+        dealMyTime: common.dealTime(_this.data.mytime)
+      })
+    });
+
+    if (mySelf.isOver) {
+      _this.setData({
+        info_isOver: mySelf.isOver
+      }, () => {
+        WxService.navigateTo(`../successes/successes?groupId=${_this.data.groupId}&userId=${_this.data.userInfo.userId}&lat=${_this.data.my_lat}&lon=${_this.data.my_lon}&deslon=${_this.data.destlon}&deslat=${_this.data.destlat}&destination=${_this.data.destination}`, () => {
+          clearInterval(_this.timer_10);
+        });
+      })
+    }
+  },
+  dealUsers: function (users, userMarkers){
+    let _this = this;
+    users.forEach((item, i) => {
+      let url = item.userImg;
+      !_this.arrayImage && (_this.arrayImage = []);
+      _this.arrayImage && dealArrayImage(_this.arrayImage);
+      function dealArrayImage(arrayImage) {
+        let current = arrayImage.find(every => {
+          return every.userId == item.userId
+        });
+
+        if (current) {
+          userMarkers.push({
+            iconPath: current.userTempFilePath,
+            id: i,
+            latitude: item.lat,
+            longitude: item.lon,
+            width: 40,
+            height: 40,
+            marker_tag: i,
+            callout: {
+              content: item.userName,
+              color: 'red',
+              borderRadius: 40,
+              bgColor: 'white'
+            }
+          });
+        } else {
+          //console.log("下载图片地址", item.userImg);
+
+          _this.downLoadImg(item.userImg, (path) => {
+            //console.log("下载得到的临时路径是", path);
+            _this.arrayImage.push({
+              userId: item.userId,
+              userTempFilePath: path
+            });
+            userMarkers.push({
+              iconPath: path,
+              id: i,
+              latitude: item.lat,
+              longitude: item.lon,
+              width: 40,
+              height: 40,
+              marker_tag: i,
+              callout: {
+                content: item.userName,
+                color: 'red',
+                borderRadius: 40,
+                bgColor: 'white'
+              }
+            });
+            _this.setData({
+              markers: userMarkers
+            })
+          })
+        }
+      }
+      item.distanceSurplus = item.distanceSurplus.toFixed(1);
+      item.updateTime = common.getNowDate(item.updateTime);
+      item.surplusTime = (parseInt(item.surplusTime / 60 / 60) < 1) ? parseInt(item.surplusTime / 60) + "分钟" : parseInt(item.surplusTime / 60 / 60) + "小时" + parseInt(item.surplusTime / 60 % 60) + "分钟";
+
+      if (item.speed) {
+        item.speed = parseInt(item.speed);
+      }
+      if (item.speed < 0) {
+        item.speed = 0;
+      }
+    });
+    _this.setData({
+      markers: userMarkers,
+      usersList: users,
+      userNumber: users.length + 1
+    });
+  },
   updateLocation: function(longitude,latitude,speed){
     let _this = this;
     
@@ -374,27 +516,24 @@ Page({
       speed: speed,
       userid: _this.data.userInfo.userId
     }).then(res => {
-      !_this.data.destination && AppService.getUserInfo().then(res => {
-        if(res.statusCode == 200){
-          _this.setData({
-            userInfo: res.data.user,
-            groupList: res.data.groupList,
-          });
-        }
-        let theGroup = _this.data.groupList.find(item => item.groupId == _this.data.groupId)
-       
-        theGroup && _this.setData({
-            destination: theGroup.destName
+      //console.log(res);
+      if(res.data.status == 6001){
+        WxService.hideLoading();
+        WxService.showModal('温馨提示', '此群已解散', false, function () {
+          wx.navigateBack({
+            delta: 5
+          })
         });
-      })
+      }else{
+        this.getDestination();
+
+      }
       let users = res.data.data;
       _this.users = res.data.data;
       let personNumber = users.length;
       _this.setData({
           groupName: res.data.groupname
       });
-      console.log(res.data);
-      wx.setNavigationBarTitle({ title: res.data.groupname + "(" + personNumber+"人)"});
       wx.setNavigationBarTitle({ title: "(" + personNumber + "人)" + _this.data.destination});
       let userMarkers = [].concat(_this.data.markers.slice(0, 2));
       users.map((item,i) => {
@@ -405,199 +544,24 @@ Page({
       let mySelf = users.find(item => item.userId == _this.data.userInfo.userId);
       
       if (mySelf) {
-          dealMySelf();
+        _this.dealMySelf(mySelf, userMarkers);
       }
-
-
       users = users.filter(item => item.userId != _this.data.userInfo.userId && item.userName != null);
       if(users){
-        dealUsers();
+        _this.dealUsers(users, userMarkers);
       }
-      function dealMySelf(){
-        !_this.arrayImage && (_this.arrayImage = []);
-        _this.arrayImage && dealArrayImage(_this.arrayImage);
-        function dealArrayImage(arrayImage){
-          let current = arrayImage.find(every => {
-            return every.userId == mySelf.userId
-          });
-          if(!current){
-            downLoadImg(mySelf.userImg, (path) => {
-              _this.arrayImage.push({
-                userId: mySelf.userId,
-                userTempFilePath: path
-              });
-            })
-          }
-
-        }
-
-        _this.setData({
-              mydistance: mySelf.distanceSurplus.toFixed(1),
-              mytime: (parseInt(mySelf.surplusTime / 60/60) < 1)?parseInt(mySelf.surplusTime / 60) + "分钟":parseInt(mySelf.surplusTime / 60/60) + "小时" + parseInt(mySelf.surplusTime / 60%60) + "分钟",
-              myspeed: parseInt(mySelf.speed),
-              myupdate: common.getNowDate(mySelf.updateTime),
-              my_tag_url: `../resouces/voice/avatar_tag${mySelf.index+1}.png`,
-              my_isOver: mySelf.isOver
-          },()=>{
-            _this.setData({
-              dealMyTime:common.dealTime(_this.data.mytime)
-            })
-          });
-
-          if (mySelf.isOver) {
-              _this.setData({
-                info_isOver: mySelf.isOver
-              },()=>{
-                WxService.navigateTo(`../successes/successes?groupId=${_this.data.groupId}&userId=${_this.data.userInfo.userId}&lat=${_this.data.my_lat}&lon=${_this.data.my_lon}&deslon=${_this.data.destlon}&deslat=${_this.data.destlat}&destination=${_this.data.destination}`, () => {
-                  clearInterval(_this.timer_10);
-                });
-              })
-              
-          }
-      }
-      function downLoadImg(url,next){
-        wx.downloadFile({
-          url: url,
-          success: function (res) {
-            
-            let path = res.tempFilePath;
-            next && next(path)
-          }
-        })
-      }
-      //users处理
-     
-      function dealUsers(){
-        
-        
-        users.forEach((item, i) => {
-            let url = item.userImg;
-            //第一种方案，个人认为不好，下载之后，一直setData。一直有缓存
-            // downLoadImg(url,(path)=>{
-            //     userMarkers.push({
-            //       iconPath: path,
-            //       id: i,
-            //       latitude: item.lat,
-            //       longitude: item.lon,
-            //       width: 40,
-            //       height: 40,
-            //       marker_tag: i
-            //     });
-            //     _this.setData({
-            //       markers: userMarkers
-            //     })
-            // })
-            
-
-            //第二种方案,使用this.arrayImage缓存临时路径。
-            
-            !_this.arrayImage && (_this.arrayImage = []);
-            
-            _this.arrayImage && dealArrayImage(_this.arrayImage);
-            function dealArrayImage(arrayImage){
-              
-              let current = arrayImage.find(every => {
-                return every.userId == item.userId
-              });
-             
-              if(current){
-                
-                userMarkers.push({
-                  iconPath: current.userTempFilePath,
-                  id: i,
-                  latitude: item.lat,
-                  longitude: item.lon,
-                  width: 40,
-                  height: 40,
-                  marker_tag: i,
-                  callout:{
-                    content:item.userName,
-                    color: 'red',
-                    borderRadius:40,
-                    bgColor:'white'
-                  }
-                }); 
-              }else{  
-                console.log("下载图片地址", item.userImg);
-              
-                downLoadImg(item.userImg,(path)=>{
-                  console.log("下载得到的临时路径是",path);
-                
-                  _this.arrayImage.push({
-                    userId:item.userId,
-                    userTempFilePath:path
-                  });
-                  userMarkers.push({
-                    iconPath: path,
-                    id: i,
-                    latitude: item.lat,
-                    longitude: item.lon,
-                    width: 40,
-                    height: 40,
-                    marker_tag: i,
-                    callout: {
-                      content: item.userName,
-                      color: 'red',
-                      borderRadius: 40,
-                      bgColor: 'white'
-                    }
-                  });
-                  _this.setData({
-                    markers: userMarkers
-                  })
-                })
-              }
-            } 
-            item.distanceSurplus = item.distanceSurplus.toFixed(1);
-            item.updateTime = common.getNowDate(item.updateTime);
-            item.surplusTime = (parseInt(item.surplusTime / 60/60) < 1)?parseInt(item.surplusTime / 60) + "分钟":parseInt(item.surplusTime / 60/60) + "小时" + parseInt(item.surplusTime / 60%60) + "分钟";
-
-            if (item.speed) {
-                item.speed = parseInt(item.speed);
-            }
-            if (item.speed < 0) {
-                item.speed = 0;
-            }
-        });
-        _this.setData({
-            markers: userMarkers,
-            usersList: users,
-            userNumber:users.length + 1
-        });
-      }
+  
     }).catch(error => {
       console.log(error);
-      common.dealCatch(function(){
-        WxService.hideLoading();
-        WxService.showModal('温馨提示','此群已解散',false,function(){
-          wx.navigateBack({
-            delta: 5
-          })
-        });
-      },function(){
-        wx.showToast({
-          title: '路线计算失败，请检网络后重试！',
-          icon: 'loading',
-          duration: 2000
-        })
-      });
     });
   },
   onmessage: function(){
     let _this = this;
-
     _this.socketMsgQueue = _this.socketMsgQueue || [];
-
     wx.onSocketMessage(function(res) {
-
       let content=JSON.parse(res.data);
-      
       if(content.status==200&&(_this.data.groupId == content.data.groupid)){
-      
-       
-
         _this.socketMsgQueue.push(content);
-        
         if(app.globalData.isAutoPlay){
           _this.playVoice();
         }else{
@@ -608,7 +572,6 @@ Page({
           (content.data.userid != _this.data.userInfo.userId) && (_this.data.voice_number > 99) && _this.setData({
             voice_number: "99+"
           })
-          
         }
       }
     });
@@ -670,18 +633,18 @@ Page({
       let theUserId = content.data.userid;
       !_this.arrayImage && (_this.arrayImage = []);
       let thePath;
-      console.log("_this.arrayImage", _this.arrayImage);
-      console.log("theUserId",theUserId);
+      //console.log("_this.arrayImage", _this.arrayImage);
+      //console.log("theUserId",theUserId);
       if (_this.arrayImage){
          thePath = findPath(_this.arrayImage, theUserId);
       }
-      console.log('thePath', thePath);
+      //console.log('thePath', thePath);
       function findPath(array,id){
-        console.log(array, id)
+        //console.log(array, id)
         let current = array.find(item => {
           return item.userId == id
         });
-        console.log('current',current);
+        //console.log('current',current);
         return current.userTempFilePath;
       }
       

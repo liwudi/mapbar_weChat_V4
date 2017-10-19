@@ -127,7 +127,7 @@
             
           </view>
 
-          <view wx:for="{{usersList}}" class="scroll-item">
+          <view wx:for="{{usersList}}" wx:key="{{userId}}" class="scroll-item">
             <view class="img-box center">
               <image wx:if="{{checkIndex === index ? true: false}}" bindtap="usersItemEvent" data-target="{{index}}" class="mySelfImage" style="border-color:#3c78ff;width:120rpx;height:120rpx;"  src="{{item.userImg}}"></image>
               <image wx:if="{{checkIndex !== index ? true: false}}" bindtap="usersItemEvent" data-target="{{index}}" class="mySelfImage" style="border-color:#cccccc" src="{{item.userImg}}"></image>
