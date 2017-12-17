@@ -7,6 +7,10 @@ const Promise = require(`../vendor/bluebird/bluebird`);
 
 const Config = require(`../config`);
 
+if (Config.isDebug){
+  console.log = function(){}
+}
+
 let userInfo = {
     "userId": "",
     "userName": "",

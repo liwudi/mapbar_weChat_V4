@@ -1,12 +1,13 @@
 //config.js
-
+var isDebug = true;
 //线上环境
 const service = {
   main_url: `https://wireless.mapbar.com/api/3n1-wxgroup`,
   voice_url: `https://wdservice.mapbar.com/weixin-test/api/3n1-wxgroupvoice`,
   voice_socket_url: `wss://wdservice.mapbar.com/weixin-test/api/3n1-wxgroupvoice`,
   search_url: `https://w.mapbar.com/search2015/search`,
-  cityCode_url:`https://wedrive.mapbar.com`
+  cityCode_url:`https://wedrive.mapbar.com`,
+  isDebug: isDebug
 }
 //内网测试环境
 const service_test = {
@@ -14,7 +15,8 @@ const service_test = {
   voice_url: `http://192.168.0.162:8083`,
   voice_socket_url: `http://192.168.0.162:8083`,
   search_url: `https://w.mapbar.com/search2015/search`,
-  cityCode_url: `https://wedrive.mapbar.com`
+  cityCode_url: `https://wedrive.mapbar.com`,
+  isDebug: isDebug
 }
 //外网测试环境--这个环境下会有问题，首页userList的问题
 const service_debug = {
@@ -22,7 +24,8 @@ const service_debug = {
   voice_url: `http://117.107.204.167:8083`,
   voice_socket_url: `http://117.107.204.167:8083`,
   search_url: `https://w.mapbar.com/search2015/search`,
-  cityCode_url: `https://wedrive.mapbar.com`
+  cityCode_url: `https://wedrive.mapbar.com`,
+  isDebug: isDebug
 }
 module.exports = service;
 
